@@ -27,6 +27,18 @@ import pandas as pd
 import pickle
 import json
 
+# Libraries for data preparation and model building
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from math import sqrt
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Setting global constants to ensure notebook results are reproducible
+PARAMETER_CONSTANT = 42
+
 def _preprocess_data(data):
     """Private helper function to preprocess data for model prediction.
 
@@ -58,7 +70,35 @@ def _preprocess_data(data):
     # ---------------------------------------------------------------
 
     # ----------- Replace this code with your own preprocessing steps --------
-    predict_vector = feature_vector_df[['Madrid_wind_speed','Bilbao_rain_1h','Valencia_wind_speed']]
+    # predict_vector = feature_vector_df[['Madrid_wind_speed','Bilbao_rain_1h','Valencia_wind_speed']]
+    
+    predict_vector = feature_vector_df.dropna(subset=['Valencia_pressure'])
+    
+    # Fill null values by the mode in df_Merge based on the length of df_test
+    predict_mode = predict_vector['Valencia_pressure'].mode().values[0]
+    predict_vector.iloc[len(predict_vector):, predict_vector.columns.get_loc('Valencia_pressure')].fillna(predict_mode, inplace=True)
+    predict_vector['time'] = pd.to_datetime(predict_vector['time'])
+    
+    # Extracting date and time components from the 'time' column
+    predict_vector['Day'] = predict_vector['time'].dt.day
+    predict_vector['Month'] = predict_vector['time'].dt.month
+    predict_vector['Year'] = predict_vector['time'].dt.year
+    predict_vector['Hour'] = predict_vector['time'].dt.hour
+    predict_vector['Minute'] = predict_vector['time'].dt.minute
+    predict_vector['Seconds'] = predict_vector['time'].dt.second
+    predict_vector['Weekend'] = predict_vector['time'].dt.weekday
+    predict_vector['Week_of_year'] = predict_vector['time'].dt.isocalendar().week
+    
+    # Check if the 'Valencia_wind_deg' column is of string type
+    if predict_vector['Valencia_wind_deg'].dtype == 'object':
+    	# Remove "level_" prefix from the "Valencia_wind_deg" column and convert to int
+    	predict_vector['Valencia_wind_deg'] = predict_vector['Valencia_wind_deg'].str.replace('level_', '').astype(int)
+    
+    # Check if the 'Seville_pressure' column is of string type
+    if predict_vector['Seville_pressure'].dtype == 'object':
+    	# Remove "sp" prefix from the "Seville_pressure" column and convert to float
+    	predict_vector['Seville_pressure'] = predict_vector['Seville_pressure'].str.replace('sp', '').astype(int)
+    
     # ------------------------------------------------------------------------
 
     return predict_vector
